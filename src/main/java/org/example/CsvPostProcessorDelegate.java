@@ -6,11 +6,8 @@ import org.camunda.spin.json.SpinJsonNode;
 import org.camunda.spin.plugin.variable.value.JsonValue;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import javax.inject.Named;
-
 import static org.camunda.spin.Spin.JSON;
-import static org.camunda.spin.Spin.S;
 
 @Named("csvPostProcessorDelegate")
 public class CsvPostProcessorDelegate implements JavaDelegate {
