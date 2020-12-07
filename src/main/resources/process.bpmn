@@ -6,7 +6,7 @@
   <bpmn:process id="Process_csvFile" name="Process_csvFile" isExecutable="true">
     <bpmn:sequenceFlow id="Flow_027vsp8" sourceRef="Activity_0wy42sh" targetRef="Event_07kt4l8" />
     <bpmn:sequenceFlow id="Flow_00ienaz" name="Product A" sourceRef="Gateway_0f8azt9" targetRef="Activity_0wy42sh">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${combinedResult.contains("ProductA")}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${isProductA}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:serviceTask id="Activity_14d9h5j" name="Read inventory csv file" camunda:asyncBefore="true" camunda:delegateExpression="${csvLoaderDelegate}">
       <bpmn:incoming>Flow_1fsd5ay</bpmn:incoming>
@@ -34,24 +34,44 @@
     <bpmn:sequenceFlow id="Flow_12714ec" sourceRef="Activity_14d9h5j" targetRef="Activity_1w7c9ki" />
     <bpmn:sequenceFlow id="Flow_0do7j7f" sourceRef="Activity_1kolz6o" targetRef="Event_07kt4l8" />
     <bpmn:sequenceFlow id="Flow_1cdp03d" name="None" sourceRef="Gateway_0f8azt9" targetRef="Event_07kt4l8" />
-    <bpmn:sequenceFlow id="Flow_1q84tit" sourceRef="Activity_1wrutcc" targetRef="Gateway_0f8azt9" />
+    <bpmn:sequenceFlow id="Flow_1q84tit" sourceRef="Activity_1wrutcc" targetRef="Gateway_0f8azt9">
+      <bpmn:extensionElements>
+        <camunda:executionListener event="take">
+          <camunda:script scriptFormat="javascript">var json = S(execution.getVariable('combinedResult'));
+var isProductA = false;
+var isProductB = false;
+var values = json.prop("values");
+for (var i = 0; i &lt; values.elements().length; i++){
+  if (values.elements().get(i).value() == 'ProductA')
+  {
+    isProductA = true;   
+  }
+  if (values.elements().get(i).value() == 'ProductB')
+  {
+    isProductB = true;
+  }
+}
+execution.setVariable('isProductA',isProductA);
+execution.setVariable('isProductB',isProductB);</camunda:script>
+        </camunda:executionListener>
+      </bpmn:extensionElements>
+    </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_1u9hcf2" name="Product B" sourceRef="Gateway_0f8azt9" targetRef="Activity_1kolz6o">
-      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${combinedResult.contains("ProductB")}</bpmn:conditionExpression>
+      <bpmn:conditionExpression xsi:type="bpmn:tFormalExpression">${isProductB}</bpmn:conditionExpression>
     </bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_13fw2yd" sourceRef="Activity_1w7c9ki" targetRef="Activity_1wrutcc" />
     <bpmn:task id="Activity_0wy42sh" name="Notify vendor A">
       <bpmn:incoming>Flow_00ienaz</bpmn:incoming>
       <bpmn:outgoing>Flow_027vsp8</bpmn:outgoing>
     </bpmn:task>
-    <bpmn:businessRuleTask id="Activity_1wrutcc" name="Evaluate replenishment rules" camunda:resultVariable="dmn_output" camunda:decisionRef="decision_replenishment" camunda:mapDecisionResult="singleResult">
+    <bpmn:businessRuleTask id="Activity_1wrutcc" name="Evaluate replenishment rules" camunda:resultVariable="dmn_output" camunda:decisionRef="decision_replenishment" camunda:mapDecisionResult="singleEntry">
       <bpmn:extensionElements>
         <camunda:executionListener event="end">
           <camunda:script scriptFormat="javascript">var combinedResult = execution.getVariable("combinedResult");
-var dmn_output = execution.getVariable("dmn_output")["result"];
+var dmn_output = execution.getVariable("dmn_output");
 
 combinedResult.prop("values").append(dmn_output);
-execution.setVariable("combinedResult", combinedResult);
-</camunda:script>
+execution.setVariable("combinedResult", combinedResult);</camunda:script>
         </camunda:executionListener>
       </bpmn:extensionElements>
       <bpmn:incoming>Flow_13fw2yd</bpmn:incoming>
@@ -63,18 +83,29 @@ execution.setVariable("combinedResult", combinedResult);
       <bpmn:outgoing>Flow_13fw2yd</bpmn:outgoing>
     </bpmn:serviceTask>
     <bpmn:textAnnotation id="TextAnnotation_0wh1f42">
-      <bpmn:text>Evaluate the decision twice or n-times with different variables. That is because of a limitation, the DMN table can only evaluate one input at at time not the whole list: https://forum.camunda.org/t/how-can-pass-multiple-values-to-input-variable-in-request-body/897</bpmn:text>
+      <bpmn:text>Evaluate the decision twice or n-times with different variables. That is because of a limitation, the DMN table can only evaluate one input at a time not the whole list out of the box: https://forum.camunda.org/t/how-can-pass-multiple-values-to-input-variable-in-request-body/897</bpmn:text>
     </bpmn:textAnnotation>
     <bpmn:association id="Association_059yf1l" sourceRef="Activity_1wrutcc" targetRef="TextAnnotation_0wh1f42" />
     <bpmn:textAnnotation id="TextAnnotation_0fverql">
       <bpmn:text>To overcome the limitation, the following approach can be used, execute the decision multiple times and collect the resuts: https://forum.camunda.org/t/how-to-pass-array-to-dmn-input-variable/10887</bpmn:text>
     </bpmn:textAnnotation>
     <bpmn:association id="Association_05une57" sourceRef="Activity_1wrutcc" targetRef="TextAnnotation_0fverql" />
+    <bpmn:textAnnotation id="TextAnnotation_0vwq9f1">
+      <bpmn:text>This example could be simpler but it is made with more code than required to showcase some Camunda capabilities</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_1x8upfl" sourceRef="StartEvent_1" targetRef="TextAnnotation_0vwq9f1" />
+    <bpmn:textAnnotation id="TextAnnotation_17xwpb4">
+      <bpmn:text>Set a listener here to read the output from the business rules table</bpmn:text>
+    </bpmn:textAnnotation>
+    <bpmn:association id="Association_08a92jb" sourceRef="Gateway_0f8azt9" targetRef="TextAnnotation_17xwpb4" />
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
     <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Collaboration_1pmsfiy">
       <bpmndi:BPMNShape id="Participant_1cif5km_di" bpmnElement="Participant_1cif5km" isHorizontal="true">
         <dc:Bounds x="120" y="80" width="1240" height="610" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_17xwpb4_di" bpmnElement="TextAnnotation_17xwpb4">
+        <dc:Bounds x="700" y="560" width="100" height="84" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Flow_13fw2yd_di" bpmnElement="Flow_13fw2yd">
         <di:waypoint x="630" y="480" />
@@ -153,18 +184,29 @@ execution.setVariable("combinedResult", combinedResult);
         <dc:Bounds x="530" y="440" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="TextAnnotation_0wh1f42_di" bpmnElement="TextAnnotation_0wh1f42">
-        <dc:Bounds x="510" y="160" width="180" height="156" />
+        <dc:Bounds x="510" y="160" width="180" height="170" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="TextAnnotation_0fverql_di" bpmnElement="TextAnnotation_0fverql">
         <dc:Bounds x="730" y="160" width="140" height="156" />
       </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="TextAnnotation_0vwq9f1_di" bpmnElement="TextAnnotation_0vwq9f1">
+        <dc:Bounds x="270" y="160" width="150" height="142" />
+      </bpmndi:BPMNShape>
       <bpmndi:BPMNEdge id="Association_059yf1l_di" bpmnElement="Association_059yf1l">
         <di:waypoint x="724" y="440" />
-        <di:waypoint x="644" y="316" />
+        <di:waypoint x="653" y="330" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Association_05une57_di" bpmnElement="Association_05une57">
         <di:waypoint x="754" y="440" />
         <di:waypoint x="766" y="316" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_1x8upfl_di" bpmnElement="Association_1x8upfl">
+        <di:waypoint x="308" y="462" />
+        <di:waypoint x="315" y="302" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Association_08a92jb_di" bpmnElement="Association_08a92jb">
+        <di:waypoint x="875" y="490" />
+        <di:waypoint x="772" y="560" />
       </bpmndi:BPMNEdge>
     </bpmndi:BPMNPlane>
   </bpmndi:BPMNDiagram>

@@ -35,6 +35,17 @@
           <text>"ProductB"</text>
         </outputEntry>
       </rule>
+      <rule id="DecisionRule_03ykqw6">
+        <inputEntry id="UnaryTests_117f0mc">
+          <text></text>
+        </inputEntry>
+        <inputEntry id="UnaryTests_0mrh8u8">
+          <text></text>
+        </inputEntry>
+        <outputEntry id="LiteralExpression_0jrv1ch">
+          <text>""</text>
+        </outputEntry>
+      </rule>
     </decisionTable>
   </decision>
   <dmndi:DMNDI>
