@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 
 /**
  * To create a DTO like this one, it is required to know in advance the structure of the CSV file
+ * This can be done with Lombok, here the whole class is shown for educational purposes
  */
 public class CsvDTO{
     private String item;
